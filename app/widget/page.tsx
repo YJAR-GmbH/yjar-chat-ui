@@ -109,7 +109,7 @@ export default function Widget() {
 
           {messages.length === 0 && (
             <div className="text-gray-400 text-center">
-              Напиши сообщение, чтобы начать.
+              Schreib eine erste Nachricht, um zu beginnen.
             </div>
           )}
         </div>
@@ -117,7 +117,7 @@ export default function Widget() {
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
-            placeholder="Спроси что-нибудь…"
+            placeholder="Frag etwas …"
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
@@ -126,7 +126,7 @@ export default function Widget() {
             disabled={loading || !input.trim()}
             className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            {loading ? "..." : "Send"}
+            {loading ? "..." : "Senden"}
           </button>
         </form>
       </div>
