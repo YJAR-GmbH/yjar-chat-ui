@@ -160,14 +160,13 @@ export default function Widget() {
           >
             {loading ? "..." : "Senden"}
           </button>
-          <button
+        </form>
+        <button
   onClick={resetChat}
   className="text-xs text-slate-400 hover:text-slate-200"
 >
   Neuer Chat starten
 </button>
-
-        </form>
       </div>
     </div>
   );
