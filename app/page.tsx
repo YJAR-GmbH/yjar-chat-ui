@@ -40,13 +40,13 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // sessionId с TTL 48 часов
+  // sessionId TTL 48 
   useEffect(() => {
     const id = initSessionId();
     if (id) setSessionId(id);
   }, []);
 
-  // загрузка истории
+  
   useEffect(() => {
     if (!sessionId) return;
 
