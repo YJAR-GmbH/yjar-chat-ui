@@ -6,6 +6,7 @@ type Message = {
   role: "user" | "assistant";
   content: string;
 };
+
 type HistoryItem = {
   sessionId: string;
   userMessage: string;
@@ -13,25 +14,45 @@ type HistoryItem = {
   createdAt: string;
 };
 
+const SESSION_KEY = "yjar_chat_session_id";
+const SESSION_CREATED_AT_KEY = "yjar_chat_session_created_at";
+const TTL_HOURS = 48;
+
+function initSessionId(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const now = Date.now();
+  const ttlMs = TTL_HOURS * 60 * 60 * 1000;
+
+  const storedId = window.localStorage.getItem(SESSION_KEY);
+  const storedCreatedAt = window.localStorage.getItem(SESSION_CREATED_AT_KEY);
+
+  if (storedId && storedCreatedAt) {
+    const createdAt = Number(storedCreatedAt);
+    if (!Number.isNaN(createdAt) && now - createdAt < ttlMs) {
+      return storedId;
+    }
+  }
+
+  const newId = crypto.randomUUID();
+  window.localStorage.setItem(SESSION_KEY, newId);
+  window.localStorage.setItem(SESSION_CREATED_AT_KEY, String(now));
+  return newId;
+}
+
 export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 1) sessionId из localStorage
+  //  sessionId with TTL 48 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    let id = window.localStorage.getItem("yjar_chat_session_id");
-    if (!id) {
-      id = crypto.randomUUID();
-      window.localStorage.setItem("yjar_chat_session_id", id);
-    }
-    setSessionId(id);
+    const id = initSessionId();
+    if (id) setSessionId(id);
   }, []);
 
-  // 2) загрузка истории
+  
   useEffect(() => {
     if (!sessionId) return;
 
@@ -53,7 +74,6 @@ export default function Home() {
             { role: "assistant", content: m.botAnswer },
           ]
         );
-        
 
         setMessages(history);
       } catch (e) {
@@ -62,7 +82,7 @@ export default function Home() {
     })();
   }, [sessionId]);
 
-  // 3) отправка сообщения
+ 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!input.trim() || !sessionId) return;
@@ -124,7 +144,7 @@ export default function Home() {
 
           {messages.length === 0 && (
             <div className="text-slate-400 text-center">
-             Schreib eine erste Nachricht, um zu beginnen.
+              Schreib eine erste Nachricht, um zu beginnen.
             </div>
           )}
         </div>

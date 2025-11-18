@@ -14,6 +14,32 @@ type HistoryItem = {
   createdAt: string;
 };
 
+const SESSION_KEY = "yjar_chat_session_id";
+const SESSION_CREATED_AT_KEY = "yjar_chat_session_created_at";
+const TTL_HOURS = 48;
+
+function initSessionId(): string | null {
+  if (typeof window === "undefined") return null;
+
+  const now = Date.now();
+  const ttlMs = TTL_HOURS * 60 * 60 * 1000;
+
+  const storedId = window.localStorage.getItem(SESSION_KEY);
+  const storedCreatedAt = window.localStorage.getItem(SESSION_CREATED_AT_KEY);
+
+  if (storedId && storedCreatedAt) {
+    const createdAt = Number(storedCreatedAt);
+    if (!Number.isNaN(createdAt) && now - createdAt < ttlMs) {
+      return storedId;
+    }
+  }
+
+  const newId = crypto.randomUUID();
+  window.localStorage.setItem(SESSION_KEY, newId);
+  window.localStorage.setItem(SESSION_CREATED_AT_KEY, String(now));
+  return newId;
+}
+
 export default function Widget() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -21,14 +47,8 @@ export default function Widget() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    let id = window.localStorage.getItem("yjar_chat_session_id");
-    if (!id) {
-      id = crypto.randomUUID();
-      window.localStorage.setItem("yjar_chat_session_id", id);
-    }
-    setSessionId(id);
+    const id = initSessionId();
+    if (id) setSessionId(id);
   }, []);
 
   useEffect(() => {
