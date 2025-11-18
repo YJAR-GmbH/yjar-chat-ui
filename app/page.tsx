@@ -5,13 +5,7 @@ import { useEffect, useState, FormEvent } from "react";
 type Message = {
   role: "user" | "assistant";
   content: string;
-};
-
-type HistoryItem = {
-  sessionId: string;
-  userMessage: string;
-  botAnswer: string;
-  createdAt: string;
+  createdAt?: string;
 };
 
 const SESSION_KEY = "yjar_chat_session_id";
@@ -46,13 +40,13 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  //  sessionId with TTL 48 
+  // sessionId с TTL 48 часов
   useEffect(() => {
     const id = initSessionId();
     if (id) setSessionId(id);
   }, []);
 
-  
+  // загрузка истории
   useEffect(() => {
     if (!sessionId) return;
 
@@ -67,13 +61,9 @@ export default function Home() {
         if (!res.ok) return;
 
         const data = await res.json();
-
-        const history: Message[] = data.messages.flatMap(
-          (m: HistoryItem): Message[] => [
-            { role: "user", content: m.userMessage },
-            { role: "assistant", content: m.botAnswer },
-          ]
-        );
+        const history: Message[] = Array.isArray(data.messages)
+          ? data.messages
+          : [];
 
         setMessages(history);
       } catch (e) {
@@ -82,7 +72,7 @@ export default function Home() {
     })();
   }, [sessionId]);
 
- 
+  // отправка сообщения
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!input.trim() || !sessionId) return;
@@ -112,23 +102,33 @@ export default function Home() {
       setLoading(false);
     }
   }
+
   function resetChat() {
+    if (typeof window === "undefined") return;
+
     const newId = crypto.randomUUID();
     const now = Date.now();
-  
-    localStorage.setItem("yjar_chat_session_id", newId);
-    localStorage.setItem("yjar_chat_session_created_at", String(now));
-  
-    setMessages([]);  
+
+    window.localStorage.setItem(SESSION_KEY, newId);
+    window.localStorage.setItem(SESSION_CREATED_AT_KEY, String(now));
+
+    setMessages([]);
     setSessionId(newId);
   }
-  
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-900">
       <div className="w-full max-w-md rounded-xl bg-slate-800 p-4 shadow-lg flex flex-col gap-3">
-        <div className="font-semibold text-slate-50 text-lg">
-          YJAR Chat (dev)
+        <div className="flex items-center justify-between">
+          <div className="font-semibold text-slate-50 text-lg">
+            YJAR Chat assistent
+          </div>
+          <button
+            onClick={resetChat}
+            className="text-xs text-slate-400 hover:text-slate-200"
+          >
+            Neuer Chat starten
+          </button>
         </div>
 
         <div className="flex-1 min-h-[300px] max-h-[400px] overflow-y-auto rounded-lg bg-slate-900 p-3 space-y-2 text-sm">
@@ -174,15 +174,7 @@ export default function Home() {
           >
             {loading ? "..." : "Senden"}
           </button>
-          
-
         </form>
-        <button
-  onClick={resetChat}
-  className="text-xs text-slate-400 hover:text-slate-200"
->
-  Neuer Chat starten
-</button>
       </div>
     </main>
   );

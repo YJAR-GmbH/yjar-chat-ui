@@ -5,13 +5,7 @@ import { useEffect, useState, FormEvent } from "react";
 type Message = {
   role: "user" | "assistant";
   content: string;
-};
-
-type HistoryItem = {
-  sessionId: string;
-  userMessage: string;
-  botAnswer: string;
-  createdAt: string;
+  createdAt?: string;
 };
 
 const SESSION_KEY = "yjar_chat_session_id";
@@ -65,13 +59,9 @@ export default function Widget() {
         if (!res.ok) return;
 
         const data = await res.json();
-
-        const history: Message[] = data.messages.flatMap(
-          (m: HistoryItem): Message[] => [
-            { role: "user", content: m.userMessage },
-            { role: "assistant", content: m.botAnswer },
-          ]
-        );
+        const history: Message[] = Array.isArray(data.messages)
+          ? data.messages
+          : [];
 
         setMessages(history);
       } catch (e) {
@@ -110,20 +100,31 @@ export default function Widget() {
   }
 
   function resetChat() {
+    if (typeof window === "undefined") return;
+
     const newId = crypto.randomUUID();
     const now = Date.now();
-  
-    localStorage.setItem("yjar_chat_session_id", newId);
-    localStorage.setItem("yjar_chat_session_created_at", String(now));
-  
-    setMessages([]);  
+
+    window.localStorage.setItem(SESSION_KEY, newId);
+    window.localStorage.setItem(SESSION_CREATED_AT_KEY, String(now));
+
+    setMessages([]);
     setSessionId(newId);
   }
-  
 
   return (
     <div className="w-full h-full bg-white text-black p-3">
       <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold">YJAR Chat</div>
+          <button
+            onClick={resetChat}
+            className="text-xs text-gray-500 hover:text-black"
+          >
+            Neuer Chat
+          </button>
+        </div>
+
         <div className="flex-1 min-h-[300px] max-h-[400px] overflow-y-auto rounded border border-gray-200 p-3 space-y-2 text-sm bg-gray-50">
           {messages.map((m, i) => (
             <div key={i} className={m.role === "user" ? "text-right" : ""}>
@@ -161,12 +162,6 @@ export default function Widget() {
             {loading ? "..." : "Senden"}
           </button>
         </form>
-        <button
-  onClick={resetChat}
-  className="text-xs text-slate-400 hover:text-slate-200"
->
-  Neuer Chat starten
-</button>
       </div>
     </div>
   );
