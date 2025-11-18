@@ -109,6 +109,18 @@ export default function Widget() {
     }
   }
 
+  function resetChat() {
+    const newId = crypto.randomUUID();
+    const now = Date.now();
+  
+    localStorage.setItem("yjar_chat_session_id", newId);
+    localStorage.setItem("yjar_chat_session_created_at", String(now));
+  
+    setMessages([]);  
+    setSessionId(newId);
+  }
+  
+
   return (
     <div className="w-full h-full bg-white text-black p-3">
       <div className="flex flex-col gap-3">
@@ -148,6 +160,13 @@ export default function Widget() {
           >
             {loading ? "..." : "Senden"}
           </button>
+          <button
+  onClick={resetChat}
+  className="text-xs text-slate-400 hover:text-slate-200"
+>
+  Neuer Chat starten
+</button>
+
         </form>
       </div>
     </div>

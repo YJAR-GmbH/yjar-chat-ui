@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
     try {
       data = await apiRes.json();
-    } catch (e) {
+    } catch {
       
       const text = await apiRes.text();
       console.error("Upstream /api/history returned non-JSON:", text);
