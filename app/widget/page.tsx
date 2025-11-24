@@ -19,9 +19,7 @@ function initSessionId(): string | null {
   const ttlMs = TTL_HOURS * 60 * 60 * 1000;
 
   const storedId = window.localStorage.getItem(SESSION_KEY);
-  const storedCreatedAt = window.localStorage.getItem(
-    SESSION_CREATED_AT_KEY
-  );
+  const storedCreatedAt = window.localStorage.getItem(SESSION_CREATED_AT_KEY);
 
   if (storedId && storedCreatedAt) {
     const createdAt = Number(storedCreatedAt);
@@ -36,28 +34,12 @@ function initSessionId(): string | null {
   return newId;
 }
 
-function HistorySkeleton() {
-  return (
-    <div className="flex flex-col gap-3 text-sm">
-      <div className="flex justify-start">
-        <div className="h-6 w-2/3 rounded-lg bg-gray-200 animate-pulse" />
-      </div>
-      <div className="flex justify-end">
-        <div className="h-6 w-1/2 rounded-lg bg-blue-300/60 animate-pulse" />
-      </div>
-      <div className="flex justify-start">
-        <div className="h-6 w-3/4 rounded-lg bg-gray-200 animate-pulse" />
-      </div>
-    </div>
-  );
-}
-
 export default function Widget() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loadingSend, setLoadingSend] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   // init / restore session
   useEffect(() => {
@@ -65,16 +47,15 @@ export default function Widget() {
     if (id) setSessionId(id);
   }, []);
 
-  // load history for current session
+  // load history
   useEffect(() => {
     if (!sessionId) return;
 
     let cancelled = false;
+    setHistoryLoaded(false);
 
-    async function loadHistory() {
+    (async () => {
       try {
-        setLoadingHistory(true);
-
         const res = await fetch("/api/history", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -85,7 +66,7 @@ export default function Widget() {
           console.error("Failed to load history, status:", res.status);
           if (!cancelled) {
             setMessages([]);
-            setLoadingHistory(false);
+            setHistoryLoaded(true);
           }
           return;
         }
@@ -97,18 +78,16 @@ export default function Widget() {
 
         if (!cancelled) {
           setMessages(history);
-          setLoadingHistory(false);
+          setHistoryLoaded(true);
         }
       } catch (e) {
         console.error("Failed to load history", e);
         if (!cancelled) {
           setMessages([]);
-          setLoadingHistory(false);
+          setHistoryLoaded(true);
         }
       }
-    }
-
-    loadHistory();
+    })();
 
     return () => {
       cancelled = true;
@@ -120,7 +99,6 @@ export default function Widget() {
     if (!input.trim() || !sessionId) return;
 
     const userText = input.trim();
-
     setMessages((prev) => [...prev, { role: "user", content: userText }]);
     setInput("");
     setLoadingSend(true);
@@ -156,11 +134,11 @@ export default function Widget() {
 
     setMessages([]);
     setSessionId(newId);
-    setLoadingHistory(false);
+    setHistoryLoaded(true); 
   }
 
-  const showEmptyState =
-    !loadingHistory && messages.length === 0;
+  const showEmptyPlaceholder =
+    historyLoaded && messages.length === 0;
 
   return (
     <div className="w-full h-full bg-white text-black p-3">
@@ -171,31 +149,26 @@ export default function Widget() {
             onClick={resetChat}
             className="text-xs text-gray-500 hover:text-black"
           >
-            Neuer Chat starten
+            Neuer Chat
           </button>
         </div>
 
         <div className="flex-1 min-h-[300px] max-h-[400px] overflow-y-auto rounded border border-gray-200 p-3 space-y-2 text-sm bg-gray-50">
-          {loadingHistory && messages.length === 0 && (
-            <HistorySkeleton />
-          )}
+          {messages.map((m, i) => (
+            <div key={i} className={m.role === "user" ? "text-right" : ""}>
+              <span
+                className={
+                  m.role === "user"
+                    ? "inline-block bg-blue-600 text-white px-3 py-2 rounded-lg"
+                    : "inline-block bg-gray-200 text-black px-3 py-2 rounded-lg"
+                }
+              >
+                {m.content}
+              </span>
+            </div>
+          ))}
 
-          {!loadingHistory &&
-            messages.map((m, i) => (
-              <div key={i} className={m.role === "user" ? "text-right" : ""}>
-                <span
-                  className={
-                    m.role === "user"
-                      ? "inline-block bg-blue-600 text-white px-3 py-2 rounded-lg"
-                      : "inline-block bg-gray-200 text-black px-3 py-2 rounded-lg"
-                  }
-                >
-                  {m.content}
-                </span>
-              </div>
-            ))}
-
-          {showEmptyState && (
+          {showEmptyPlaceholder && (
             <div className="text-gray-400 text-center">
               Schreib eine erste Nachricht, um zu beginnen.
             </div>
