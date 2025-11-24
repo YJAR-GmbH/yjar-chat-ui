@@ -12,6 +12,9 @@ const SESSION_KEY = "yjar_chat_session_id";
 const SESSION_CREATED_AT_KEY = "yjar_chat_session_created_at";
 const TTL_HOURS = 48;
 
+// этот ключ должен быть задан в .env.local как NEXT_PUBLIC_INTERNAL_API_KEY
+const INTERNAL_API_KEY = process.env.NEXT_PUBLIC_INTERNAL_API_KEY;
+
 function initSessionId(): string | null {
   if (typeof window === "undefined") return null;
 
@@ -19,15 +22,19 @@ function initSessionId(): string | null {
   const ttlMs = TTL_HOURS * 60 * 60 * 1000;
 
   const storedId = window.localStorage.getItem(SESSION_KEY);
-  const storedCreatedAt = window.localStorage.getItem(SESSION_CREATED_AT_KEY);
+  const storedCreatedAt = window.localStorage.getItem(
+    SESSION_CREATED_AT_KEY
+  );
 
   if (storedId && storedCreatedAt) {
     const createdAt = Number(storedCreatedAt);
     if (!Number.isNaN(createdAt) && now - createdAt < ttlMs) {
+      // старая сессия ещё жива
       return storedId;
     }
   }
 
+  // TTL вышел или ничего нет → создаём новую
   const newId = crypto.randomUUID();
   window.localStorage.setItem(SESSION_KEY, newId);
   window.localStorage.setItem(SESSION_CREATED_AT_KEY, String(now));
@@ -40,23 +47,36 @@ export default function Widget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // инициализация sessionId
   useEffect(() => {
     const id = initSessionId();
     if (id) setSessionId(id);
   }, []);
 
+  // загрузка истории из БД по sessionId
   useEffect(() => {
     if (!sessionId) return;
+
+    if (!INTERNAL_API_KEY) {
+      console.error("NEXT_PUBLIC_INTERNAL_API_KEY не задан");
+      return;
+    }
 
     (async () => {
       try {
         const res = await fetch("/api/history", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": INTERNAL_API_KEY,
+          },
           body: JSON.stringify({ sessionId }),
         });
 
-        if (!res.ok) return;
+        if (!res.ok) {
+          console.error("History load failed", res.status);
+          return;
+        }
 
         const data = await res.json();
         const history: Message[] = Array.isArray(data.messages)
@@ -74,6 +94,11 @@ export default function Widget() {
     e.preventDefault();
     if (!input.trim() || !sessionId) return;
 
+    if (!INTERNAL_API_KEY) {
+      console.error("NEXT_PUBLIC_INTERNAL_API_KEY не задан");
+      return;
+    }
+
     const userText = input.trim();
     setMessages((prev) => [...prev, { role: "user", content: userText }]);
     setInput("");
@@ -82,9 +107,17 @@ export default function Widget() {
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": INTERNAL_API_KEY,
+        },
         body: JSON.stringify({ message: userText, sessionId }),
       });
+
+      if (!res.ok) {
+        console.error("Chat request failed", res.status);
+        return;
+      }
 
       const data = await res.json();
 
