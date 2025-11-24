@@ -13,7 +13,7 @@ const SESSION_CREATED_AT_KEY = "yjar_chat_session_created_at";
 const TTL_HOURS = 48;
 const TTL_MS = TTL_HOURS * 60 * 60 * 1000;
 
-// ОДНА функция, которая всегда отвечает за sessionId + localStorage
+
 function ensureSessionId(): string {
   if (typeof window === "undefined") {
     throw new Error("ensureSessionId called on server");
