@@ -39,6 +39,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState<Record<number, boolean>>({});
 
   // sessionId TTL 48 
   useEffect(() => {
@@ -116,6 +117,42 @@ export default function Home() {
     setSessionId(newId);
   }
 
+  // 🇩 Sendet Feedback (Daumen hoch / runter) an das Backend
+async function sendFeedback(messageIndex: number, vote: "up" | "down") {
+  try {
+    const message = messages[messageIndex];
+    if (!message || message.role !== "assistant") return;
+    if (!sessionId) return;
+
+    // 🇩 Hash des Session-IDs erzeugen (Browser sendet nicht die echte ID)
+    const encoder = new TextEncoder();
+    const data = encoder.encode(sessionId);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(digest));
+    const sessionIdHash = hashArray
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    // 🇩 Request an UI-Proxy → Backend → Supabase
+    await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionIdHash,
+        messageId: String(messageIndex), // 🇩 hier nutzen wir den Index als ID
+        vote,
+        comment: null,
+      }),
+    });
+
+    // 🇩 Feedback als gesendet markieren → Buttons deaktivieren
+    setFeedbackSent((prev) => ({ ...prev, [messageIndex]: true }));
+  } catch (error) {
+    console.error("Feedback-Fehler (Home):", error);
+  }
+}
+
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-900">
       <div className="w-full max-w-md rounded-xl bg-slate-800 p-4 shadow-lg flex flex-col gap-3">
@@ -132,26 +169,53 @@ export default function Home() {
         </div>
 
         <div className="flex-1 min-h-[300px] max-h-[400px] overflow-y-auto rounded-lg bg-slate-900 p-3 space-y-2 text-sm">
-          {messages.map((m, i) => (
-            <div
-              key={i}
-              className={
-                m.role === "user"
-                  ? "text-right"
-                  : "text-left text-slate-200"
-              }
-            >
-              <span
-                className={
-                  m.role === "user"
-                    ? "inline-block bg-blue-600 text-white px-3 py-2 rounded-lg"
-                    : "inline-block bg-slate-700 text-slate-50 px-3 py-2 rounded-lg"
-                }
-              >
-                {m.content}
-              </span>
-            </div>
-          ))}
+        {messages.map((m, i) => (
+  <div
+    key={i}
+    className={
+      m.role === "user"
+        ? "text-right"
+        : "text-left text-slate-200"
+    }
+  >
+    <span
+      className={
+        m.role === "user"
+          ? "inline-block bg-blue-600 text-white px-3 py-2 rounded-lg"
+          : "inline-block bg-slate-700 text-slate-50 px-3 py-2 rounded-lg"
+      }
+    >
+      {m.content}
+    </span>
+
+    {/* 🇩 Feedback-Buttons nur für Antworten des Assistenten */}
+    {m.role === "assistant" && (
+      <div className="flex gap-2 mt-1 text-xs text-slate-400">
+        <button
+          className="hover:text-green-400 cursor-pointer disabled:cursor-default"
+          disabled={feedbackSent[i]}
+          onClick={() => sendFeedback(i, "up")}
+        >
+          👍
+        </button>
+
+        <button
+          className="hover:text-red-400 cursor-pointer disabled:cursor-default"
+          disabled={feedbackSent[i]}
+          onClick={() => sendFeedback(i, "down")}
+        >
+          👎
+        </button>
+
+        {/* 🇩 Kleine Bestätigung nach dem Senden */}
+        {feedbackSent[i] && (
+          <span className="text-green-500 ml-2">Danke!</span>
+        )}
+      </div>
+    )}
+  </div>
+))}
+
 
           {messages.length === 0 && (
             <div className="text-slate-400 text-center">

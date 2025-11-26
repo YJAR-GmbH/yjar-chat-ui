@@ -208,20 +208,21 @@ async function sendFeedback(messageIndex: number, vote: "up" | "down") {
     {m.role === "assistant" && (
       <div className="flex gap-2 mt-1 text-xs text-gray-500">
         <button
-          className="hover:text-green-600"
-          disabled={feedbackSent[i]}
-          onClick={() => sendFeedback(i, "up")}
-        >
-          👍
-        </button>
+  className="hover:text-green-600 cursor-pointer disabled:cursor-default"
+  disabled={feedbackSent[i]}
+  onClick={() => sendFeedback(i, "up")}
+>
+  👍
+</button>
 
-        <button
-          className="hover:text-red-600"
-          disabled={feedbackSent[i]}
-          onClick={() => sendFeedback(i, "down")}
-        >
-          👎
-        </button>
+<button
+  className="hover:text-red-600 cursor-pointer disabled:cursor-default"
+  disabled={feedbackSent[i]}
+  onClick={() => sendFeedback(i, "down")}
+>
+  👎
+</button>
+
 
         {/* 🇩 Nach dem Senden eine kleine Bestätigung anzeigen */}
         {feedbackSent[i] && <span className="text-green-700 ml-2">Danke!</span>}
