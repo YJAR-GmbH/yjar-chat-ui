@@ -191,6 +191,7 @@ export default function Widget() {
       // Kleine Bestätigungsnachricht im Chat anzeigen
       setMessages((prev) => [
         ...prev,
+        { role: "user", content: "" },
         {
           role: "assistant",
           content:
@@ -264,15 +265,46 @@ export default function Widget() {
   return (
     <div className="w-full h-full bg-white text-black p-3">
       <div className="flex flex-col gap-3 h-full">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold">YJAR Chat assistent</div>
-          <button
-            onClick={resetChat}
-            className="text-xs text-gray-500 hover:text-black"
-          >
-            Neuer Chat
-          </button>
-        </div>
+      <div className="flex items-center justify-between">
+  <div className="text-sm font-semibold">YJAR Chat assistent</div>
+
+  <div className="flex gap-3">
+    {/* SUPPORT BUTTON */}
+    <button
+      onClick={async () => {
+        if (!sessionId) return;
+        await fetch("/api/support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            message: input.trim() || null,
+          }),
+        });
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Support-Ticket wurde erstellt. Unser Team meldet sich.",
+          },
+        ]);
+      }}
+      className="text-xs text-blue-600 hover:text-blue-800"
+    >
+      Support
+    </button>
+
+    {/* RESET BUTTON */}
+    <button
+      onClick={resetChat}
+      className="text-xs text-gray-500 hover:text-black"
+    >
+      Neuer Chat
+    </button>
+  </div>
+</div>
+
 
         <div className="flex-1 min-h-[300px] max-h-[400px] overflow-y-auto rounded border border-gray-200 p-3 space-y-2 text-sm bg-gray-50">
           {messages.map((m, i) => (

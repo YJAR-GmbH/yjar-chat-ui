@@ -165,6 +165,7 @@ export default function Home() {
 
       setMessages((prev) => [
         ...prev,
+        { role: "user", content: "" },
         {
           role: "assistant",
           content:
@@ -232,17 +233,46 @@ export default function Home() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-900">
       <div className="w-full max-w-md rounded-xl bg-slate-800 p-4 shadow-lg flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="font-semibold text-slate-50 text-lg">
-            YJAR Chat assistent
-          </div>
-          <button
-            onClick={resetChat}
-            className="text-xs text-slate-400 hover:text-slate-200"
-          >
-            Neuer Chat starten
-          </button>
-        </div>
+      <div className="flex items-center justify-between">
+  <div className="text-sm font-semibold">YJAR Chat assistent</div>
+
+  <div className="flex gap-3">
+    {/* SUPPORT BUTTON */}
+    <button
+      onClick={async () => {
+        if (!sessionId) return;
+        await fetch("/api/support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            message: input.trim() || null,
+          }),
+        });
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Support-Ticket wurde erstellt. Unser Team meldet sich.",
+          },
+        ]);
+      }}
+      className="text-xs text-blue-600 hover:text-blue-800"
+    >
+      Support
+    </button>
+
+    {/* RESET BUTTON */}
+    <button
+      onClick={resetChat}
+      className="text-xs text-gray-500 hover:text-black"
+    >
+      Neuer Chat
+    </button>
+  </div>
+</div>
+
 
         <div className="flex-1 min-h-[300px] max-h-[400px] overflow-y-auto rounded-lg bg-slate-900 p-3 space-y-2 text-sm">
           {messages.map((m, i) => (
