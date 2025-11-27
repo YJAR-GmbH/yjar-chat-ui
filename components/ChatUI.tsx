@@ -11,53 +11,43 @@ type ChatUIProps = {
   variant?: "light" | "dark";
 };
 
-// --- SESSION CONSTANTS ---
 const SESSION_KEY = "yjar_chat_session_id";
 const SESSION_CREATED_AT_KEY = "yjar_chat_session_created_at";
 const TTL_HOURS = 48;
 
-// --- CREATE / RESTORE SESSION ---
 function initSessionId(): string | null {
   if (typeof window === "undefined") return null;
 
   const now = Date.now();
   const ttlMs = TTL_HOURS * 60 * 60 * 1000;
 
-  const storedId = localStorage.getItem(SESSION_KEY);
-  const storedCreated = localStorage.getItem(SESSION_CREATED_AT_KEY);
+  const storedId = window.localStorage.getItem(SESSION_KEY);
+  const storedCreatedAt = window.localStorage.getItem(SESSION_CREATED_AT_KEY);
 
-  if (storedId && storedCreated) {
-    const createdAt = Number(storedCreated);
+  if (storedId && storedCreatedAt) {
+    const createdAt = Number(storedCreatedAt);
     if (!Number.isNaN(createdAt) && now - createdAt < ttlMs) {
       return storedId;
     }
   }
 
   const newId = crypto.randomUUID();
-  localStorage.setItem(SESSION_KEY, newId);
-  localStorage.setItem(SESSION_CREATED_AT_KEY, String(now));
+  window.localStorage.setItem(SESSION_KEY, newId);
+  window.localStorage.setItem(SESSION_CREATED_AT_KEY, String(now));
   return newId;
 }
 
-// --- HASH UTIL ---
-async function hashId(id: string) {
-  const b = new TextEncoder().encode(id);
-  const digest = await crypto.subtle.digest("SHA-256", b);
-  return Array.from(new Uint8Array(digest))
-    .map((x) => x.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 export default function ChatUI({ variant = "dark" }: ChatUIProps) {
-  // --- MAIN STATE ---
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  // сессия без useEffect, чтобы не было ошибки setState в эффекте
+  const [sessionId] = useState<string | null>(() => initSessionId());
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [lastUserMessage, setLastUserMessage] = useState<string | null>(null);
 
-  // --- LEAD STATE ---
+  // Lead
   const [leadMode, setLeadMode] = useState(false);
   const [leadDone, setLeadDone] = useState(false);
   const [leadName, setLeadName] = useState("");
@@ -65,7 +55,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [leadError, setLeadError] = useState<string | null>(null);
   const [leadLoading, setLeadLoading] = useState(false);
 
-  // --- SUPPORT STATE ---
+  // Support
   const [supportMode, setSupportMode] = useState(false);
   const [supportDone, setSupportDone] = useState(false);
   const [supportName, setSupportName] = useState("");
@@ -73,29 +63,26 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [supportError, setSupportError] = useState<string | null>(null);
   const [supportLoading, setSupportLoading] = useState(false);
 
-  // --- INIT SESSION ---
-  useEffect(() => {
-    const id = initSessionId();
-    setTimeout(() => setSessionId(id), 0);
-  }, []);
-
-  // --- LOAD HISTORY ---
+  // загрузка истории
   useEffect(() => {
     if (!sessionId) return;
 
     (async () => {
-      const res = await fetch("/api/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
-      });
+      try {
+        const res = await fetch("/api/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        });
 
-      const data = await res.json();
-      setMessages(Array.isArray(data.messages) ? data.messages : []);
+        const data = await res.json();
+        setMessages(Array.isArray(data.messages) ? data.messages : []);
+      } catch (e) {
+        console.error("History error", e);
+      }
     })();
   }, [sessionId]);
 
-  // --- SEND MESSAGE ---
   async function sendMessage(e: FormEvent) {
     e.preventDefault();
     if (!input.trim() || !sessionId) return;
@@ -107,38 +94,48 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     setInput("");
     setLoading(true);
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text, sessionId }),
-    });
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, sessionId }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
+      const answer: string = data.answer ?? "";
+      const intent: string = data.intent ?? "other";
 
-    const answer = data.answer ?? "";
-    const intent = data.intent ?? "other";
+      if (answer) {
+        setMessages((p) => [...p, { role: "assistant", content: answer }]);
+      }
 
-    if (answer) {
-      setMessages((p) => [...p, { role: "assistant", content: answer }]);
+      if (intent === "lead") {
+        setLeadMode(true);
+        setSupportMode(false);
+        setLeadDone(false);
+      } else if (intent === "support") {
+        setSupportMode(true);
+        setLeadMode(false);
+        setSupportDone(false);
+      } else {
+        setLeadMode(false);
+        setSupportMode(false);
+      }
+    } catch (e) {
+      console.error("Chat error", e);
+    } finally {
+      setLoading(false);
     }
-
-    if (intent === "lead") {
-      setLeadMode(true);
-      setLeadDone(false);
-      setSupportMode(false);
-    } else if (intent === "support") {
-      setSupportMode(true);
-      setSupportDone(false);
-      setLeadMode(false);
-    } else {
-      setLeadMode(false);
-      setSupportMode(false);
-    }
-
-    setLoading(false);
   }
 
-  // --- SUBMIT LEAD ---
+  async function hashId(id: string) {
+    const bytes = new TextEncoder().encode(id);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
   async function submitLead(e: FormEvent) {
     e.preventDefault();
     if (!sessionId) return;
@@ -149,37 +146,42 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     }
 
     setLeadLoading(true);
+    setLeadError(null);
 
-    const hashed = await hashId(sessionId);
+    try {
+      const hash = await hashId(sessionId);
 
-    await fetch("/api/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionIdHash: hashed,
-        name: leadName.trim(),
-        email: leadEmail.trim(),
-        message: lastUserMessage,
-        source: "website-chat",
-      }),
-    });
+      await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionIdHash: hash,
+          name: leadName.trim(),
+          email: leadEmail.trim(),
+          message: lastUserMessage,
+          source: "website-chat",
+        }),
+      });
 
-    setLeadDone(true);
-    setLeadMode(false);
+      setLeadDone(true);
+      setLeadMode(false);
 
-    setMessages((p) => [
-      ...p,
-      {
-        role: "assistant",
-        content:
-          "Vielen Dank! Unser Team meldet sich schnellstmöglich bei Ihnen.",
-      },
-    ]);
-
-    setLeadLoading(false);
+      setMessages((p) => [
+        ...p,
+        {
+          role: "assistant",
+          content:
+            "Vielen Dank! Unser Team meldet sich schnellstmöglich bei Ihnen.",
+        },
+      ]);
+    } catch (err) {
+      console.error("Lead error", err);
+      setLeadError("Fehler – bitte später erneut versuchen.");
+    } finally {
+      setLeadLoading(false);
+    }
   }
 
-  // --- SUBMIT SUPPORT ---
   async function submitSupport(e: FormEvent) {
     e.preventDefault();
     if (!sessionId) return;
@@ -190,42 +192,68 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     }
 
     setSupportLoading(true);
+    setSupportError(null);
 
-    const hashed = await hashId(sessionId);
+    try {
+      const hash = await hashId(sessionId);
 
-    await fetch("/api/support", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionIdHash: hashed,
-        name: supportName.trim(),
-        email: supportEmail.trim(),
-        message: lastUserMessage,
-      }),
-    });
+      await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionIdHash: hash,
+          name: supportName.trim(),
+          email: supportEmail.trim(),
+          message: lastUserMessage,
+        }),
+      });
 
-    setSupportDone(true);
-    setSupportMode(false);
+      setSupportDone(true);
+      setSupportMode(false);
 
-    setMessages((p) => [
-      ...p,
-      {
-        role: "assistant",
-        content: "Support-Ticket wurde erstellt. Unser Team meldet sich.",
-      },
-    ]);
-
-    setSupportLoading(false);
+      setMessages((p) => [
+        ...p,
+        {
+          role: "assistant",
+          content: "Support-Ticket wurde erstellt. Unser Team meldet sich.",
+        },
+      ]);
+    } catch (err) {
+      console.error("Support error", err);
+      setSupportError("Fehler – bitte später erneut versuchen.");
+    } finally {
+      setSupportLoading(false);
+    }
   }
 
-  // --- THEME ---
   const isDark = variant === "dark";
-  const bg = isDark ? "bg-slate-800 text-white" : "bg-white text-black";
-  const chatBg = isDark ? "bg-slate-900" : "bg-gray-50";
-  const border = isDark ? "border-slate-600" : "border-gray-300";
+
+  const containerClasses =
+    `w-full max-w-md mx-auto p-4 flex flex-col gap-3 rounded-xl ` +
+    (isDark ? "bg-slate-800 text-slate-50" : "bg-white text-black");
+
+  const chatBoxClasses =
+    `flex-1 min-h-[300px] max-h-[400px] overflow-y-auto rounded-lg p-3 space-y-2 text-sm ` +
+    (isDark ? "bg-slate-900" : "bg-gray-50");
+
+  const inputClasses =
+    "flex-1 rounded-lg px-3 py-2 border " +
+    (isDark
+      ? "bg-slate-900 border-slate-600 text-slate-50 placeholder-slate-400"
+      : "bg-white border-gray-300 text-black placeholder-gray-400");
+
+  const formContainerClasses =
+    "flex flex-col gap-2 border rounded-lg p-3 text-xs " +
+    (isDark ? "border-slate-600 bg-slate-900" : "border-gray-300 bg-gray-50");
+
+  const formInputClasses =
+    "rounded px-2 py-1 border " +
+    (isDark
+      ? "bg-slate-800 border-slate-600 text-slate-50 placeholder-slate-400"
+      : "bg-white border-gray-300 text-black placeholder-gray-400");
 
   return (
-    <div className={`w-full h-full p-4 rounded-xl flex flex-col gap-3 ${bg}`}>
+    <div className={containerClasses}>
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="font-semibold text-sm">YJAR Chat assistent</div>
@@ -236,7 +264,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
               setSupportMode(true);
               setLeadMode(false);
             }}
-            className="text-xs text-blue-400 hover:text-blue-200"
+            className="text-xs text-blue-400 hover:text-blue-600"
           >
             Support
           </button>
@@ -250,10 +278,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
         </div>
       </div>
 
-      {/* CHAT BOX */}
-      <div
-        className={`flex-1 min-h-[300px] max-h-[400px] overflow-y-auto rounded-lg p-3 space-y-2 text-sm ${chatBg}`}
-      >
+      {/* CHAT */}
+      <div className={chatBoxClasses}>
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "text-right" : ""}>
             <span
@@ -269,7 +295,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
         ))}
 
         {messages.length === 0 && (
-          <div className="opacity-60 text-center">
+          <div className="text-center opacity-60">
             Schreib eine erste Nachricht, um zu beginnen.
           </div>
         )}
@@ -277,18 +303,15 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
 
       {/* LEAD FORM */}
       {leadMode && !leadDone && (
-        <form
-          onSubmit={submitLead}
-          className={`flex flex-col gap-2 border rounded-lg p-3 text-xs ${border}`}
-        >
+        <form onSubmit={submitLead} className={formContainerClasses}>
           <input
-            className={`rounded px-2 py-1 text-black ${border}`}
+            className={formInputClasses}
             placeholder="Name"
             value={leadName}
             onChange={(e) => setLeadName(e.target.value)}
           />
           <input
-            className={`rounded px-2 py-1 text-black ${border}`}
+            className={formInputClasses}
             placeholder="E-Mail"
             value={leadEmail}
             onChange={(e) => setLeadEmail(e.target.value)}
@@ -307,18 +330,15 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
 
       {/* SUPPORT FORM */}
       {supportMode && !supportDone && (
-        <form
-          onSubmit={submitSupport}
-          className={`flex flex-col gap-2 border rounded-lg p-3 text-xs ${border}`}
-        >
+        <form onSubmit={submitSupport} className={formContainerClasses}>
           <input
-            className={`rounded px-2 py-1 text-black ${border}`}
+            className={formInputClasses}
             placeholder="Name"
             value={supportName}
             onChange={(e) => setSupportName(e.target.value)}
           />
           <input
-            className={`rounded px-2 py-1 text-black ${border}`}
+            className={formInputClasses}
             placeholder="E-Mail"
             value={supportEmail}
             onChange={(e) => setSupportEmail(e.target.value)}
@@ -328,7 +348,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
 
           <button
             disabled={supportLoading}
-            className="rounded bg-purple-600 text-white px-3 py-1 disabled:opacity-50"
+            className="rounded bg-blue-600 text-white px-3 py-1 disabled:opacity-50"
           >
             {supportLoading ? "Senden…" : "Ticket senden"}
           </button>
@@ -338,7 +358,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       {/* INPUT */}
       <form onSubmit={sendMessage} className="flex gap-2">
         <input
-          className={`flex-1 rounded-lg px-3 py-2 text-black ${border}`}
+          className={inputClasses}
           placeholder="Frag etwas…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
