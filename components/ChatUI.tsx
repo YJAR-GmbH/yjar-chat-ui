@@ -152,6 +152,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     try {
       const hash = await hashId(sessionId);
 
+      // Lead zuerst in Supabase speichern
       await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -161,6 +162,36 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           email: leadEmail.trim(),
           message: lastUserMessage,
           source: "website-chat",
+        }),
+      });
+
+      // Letzte User-Nachricht für den Titel finden
+      const lastUser =
+        [...messages].reverse().find((m) => m.role === "user")?.content ||
+        lastUserMessage ||
+        "";
+
+      // Titel für Asana-Lead erzeugen
+      const ticketTitle =
+        "Lead: " +
+        (lastUser ? lastUser.slice(0, 80) : "Neue Anfrage über Website");
+
+      // Lead zusätzlich als Ticket an n8n/Asana senden
+      await fetch("/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionIdHash: hash,
+          name: leadName.trim(),
+          email: leadEmail.trim(),
+          phone: null,
+          message: lastUserMessage,
+          lastMessages: messages.map((m) => {
+            const prefix = m.role === "user" ? "User" : "Bot";
+            return `${prefix}: ${m.content}`;
+          }),
+          ticketTitle,
+          url: typeof window !== "undefined" ? window.location.href : null,
         }),
       });
 
@@ -182,6 +213,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       setLeadLoading(false);
     }
   }
+
 
      // Kurz-Titel für ein Support-Ticket vom KI erzeugen
   async function generateShortTitle(message: string) {
