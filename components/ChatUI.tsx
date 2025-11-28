@@ -183,97 +183,96 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     }
   }
 
-    // Kurz-Titel für ein Support-Ticket vom KI erzeugen
-    async function generateShortTitle(message: string) {
-      const res = await fetch("/api/chat", {
+     // Kurz-Titel für ein Support-Ticket vom KI erzeugen
+  async function generateShortTitle(message: string) {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: `Erstelle einen sehr kurzen Titel für ein Support-Ticket (max. 4–6 Wörter): "${message}". Antworte nur mit dem Titel.`,
+        sessionId: "support-title-generator",
+      }),
+    });
+
+    const data = await res.json();
+    return data.answer?.replace(/\n/g, "").trim() || "Support Anfrage";
+  }
+
+  async function submitSupport(e: FormEvent) {
+    e.preventDefault();
+    if (!sessionId) return;
+
+    // Name ist Pflicht, außerdem mindestens E-Mail ODER Telefon
+    if (
+      !supportName.trim() ||
+      (!supportEmail.trim() && !supportPhone.trim())
+    ) {
+      setSupportError(
+        "Bitte E-Mail oder Telefonnummer eingeben."
+      );
+      return;
+    }
+
+    setSupportLoading(true);
+    setSupportError(null);
+
+    try {
+      const hash = await hashId(sessionId);
+
+      // Letzte User-Nachricht suchen
+      const lastUser =
+        [...messages].reverse().find((m) => m.role === "user")?.content ||
+        lastUserMessage ||
+        "";
+
+      // Titel vom KI generieren lassen
+      const aiTitle = await generateShortTitle(lastUser);
+
+      // Finaler Titel + Name
+      const ticketTitle = `${aiTitle}, ${supportName.trim()}`;
+
+      // Letzte Chat-Nachrichten für das Ticket vorbereiten (z.B. letzte 6 Einträge)
+      const lastMessagesPayload = messages
+        .slice(-6)
+        .map((m) => `${m.role === "user" ? "User" : "Bot"}: ${m.content}`);
+
+      // Aktuelle URL der Seite (optional)
+      const currentUrl =
+        typeof window !== "undefined" ? window.location.href : null;
+
+      await fetch("/api/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: `Erstelle einen sehr kurzen Titel für ein Support-Ticket (max. 4–6 Wörter): "${message}". Antworte nur mit dem Titel.`,
-          sessionId: "support-title-generator",
+          sessionIdHash: hash,
+          name: supportName.trim(),
+          email: supportEmail.trim() || null,
+          phone: supportPhone.trim() || null,
+          message: lastUserMessage,
+          lastMessages: lastMessagesPayload,
+          url: currentUrl,
+          ticketTitle,
         }),
       });
-  
-      const data = await res.json();
-      return data.answer?.replace(/\n/g, "").trim() || "Support Anfrage";
-    }
-  
-  
 
-    async function submitSupport(e: FormEvent) {
-      e.preventDefault();
-      if (!sessionId) return;
-  
-      // Name ist Pflicht, außerdem mindestens E-Mail ODER Telefon
-      if (
-        !supportName.trim() ||
-        (!supportEmail.trim() && !supportPhone.trim())
-      ) {
-        setSupportError(
-          "Bitte E-Mail oder Telefonnummer eingeben."
-        );
-        return;
-      }
-  
-      setSupportLoading(true);
-      setSupportError(null);
-  
-      try {
-        const hash = await hashId(sessionId);
-  
-        // Letzte User-Nachricht suchen
-        const lastUser =
-          [...messages].reverse().find((m) => m.role === "user")?.content ||
-          lastUserMessage ||
-          "";
-  
-        // Titel vom KI generieren lassen
-        const aiTitle = await generateShortTitle(lastUser);
-  
-        // Finaler Titel + Name
-        const ticketTitle = `${aiTitle}, ${supportName.trim()}`;
-  
-        // Letzte Chat-Nachrichten für das Ticket vorbereiten (z.B. letzte 6 Einträge)
-        const lastMessagesPayload = messages
-          .slice(-6)
-          .map((m) => `${m.role === "user" ? "User" : "Bot"}: ${m.content}`);
-  
-        // Aktuelle URL der Seite (optional)
-        const currentUrl =
-          typeof window !== "undefined" ? window.location.href : null;
-  
-        await fetch("/api/support", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionIdHash: hash,
-            name: supportName.trim(),
-            email: supportEmail.trim() || null,
-            phone: supportPhone.trim() || null,
-            message: lastUserMessage,
-            lastMessages: lastMessagesPayload,
-            url: currentUrl,
-            ticketTitle,
-          }),
-        });
-  
-        setSupportDone(true);
-        setSupportMode(false);
-  
-        setMessages((p) => [
-          ...p,
-          {
-            role: "assistant",
-            content: "Support-Ticket wurde erstellt. Unser Team meldet sich.",
-          },
-        ]);
-      } catch (err) {
-        console.error("Support error", err);
-        setSupportError("Fehler – bitte später erneut versuchen.");
-      } finally {
-        setSupportLoading(false);
-      }
+      setSupportDone(true);
+      setSupportMode(false);
+
+      setMessages((p) => [
+        ...p,
+        {
+          role: "assistant",
+          content: "Support-Ticket wurde erstellt. Unser Team meldet sich.",
+        },
+      ]);
+    } catch (err) {
+      console.error("Support error", err);
+      setSupportError("Fehler – bitte später erneut versuchen.");
+    } finally {
+      setSupportLoading(false);
     }
+  }
+
   
 
 
