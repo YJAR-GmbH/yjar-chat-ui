@@ -38,7 +38,7 @@ function initSessionId(): string | null {
 }
 
 export default function ChatUI({ variant = "dark" }: ChatUIProps) {
-  // state forv"Neuer Chat"
+  // state for "Neuer Chat"
   const [sessionId, setSessionId] = useState<string | null>(() => initSessionId());
 
   const [messages, setMessages] = useState<Message[]>([]);
@@ -52,6 +52,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [leadDone, setLeadDone] = useState(false);
   const [leadName, setLeadName] = useState("");
   const [leadEmail, setLeadEmail] = useState("");
+  const [leadPhone, setLeadPhone] = useState("");           // телефон для лида
+  const [leadConsent, setLeadConsent] = useState(false);    // согласие DSGVO (lead)
   const [leadError, setLeadError] = useState<string | null>(null);
   const [leadLoading, setLeadLoading] = useState(false);
 
@@ -60,7 +62,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [supportDone, setSupportDone] = useState(false);
   const [supportName, setSupportName] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
-  const [supportPhone, setSupportPhone] = useState(""); // НОВОЕ: телефон
+  const [supportPhone, setSupportPhone] = useState("");     // телефон support
+  const [supportConsent, setSupportConsent] = useState(false); // согласие DSGVO (support)
   const [supportError, setSupportError] = useState<string | null>(null);
   const [supportLoading, setSupportLoading] = useState(false);
 
@@ -146,6 +149,11 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       return;
     }
 
+    if (!leadConsent) {
+      setLeadError("Bitte bestätigen Sie die Datenschutzerklärung.");
+      return;
+    }
+
     setLeadLoading(true);
     setLeadError(null);
 
@@ -160,8 +168,10 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           sessionIdHash: hash,
           name: leadName.trim(),
           email: leadEmail.trim(),
+          phone: leadPhone.trim() || null,
           message: lastUserMessage,
           source: "website-chat",
+          consent: leadConsent,
         }),
       });
 
@@ -184,7 +194,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           sessionIdHash: hash,
           name: leadName.trim(),
           email: leadEmail.trim(),
-          phone: null,
+          phone: leadPhone.trim() || null,
           message: lastUserMessage,
           lastMessages: messages.map((m) => {
             const prefix = m.role === "user" ? "User" : "Bot";
@@ -192,6 +202,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           }),
           ticketTitle,
           url: typeof window !== "undefined" ? window.location.href : null,
+          consent: leadConsent,
         }),
       });
 
@@ -214,8 +225,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     }
   }
 
-
-     // Kurz-Titel für ein Support-Ticket vom KI erzeugen
+  // Kurz-Titel für ein Support-Ticket vom KI erzeugen
   async function generateShortTitle(message: string) {
     const res = await fetch("/api/chat", {
       method: "POST",
@@ -235,13 +245,13 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     if (!sessionId) return;
 
     // Name ist Pflicht, außerdem mindestens E-Mail ODER Telefon
-    if (
-      !supportName.trim() ||
-      (!supportEmail.trim() && !supportPhone.trim())
-    ) {
-      setSupportError(
-        "Bitte E-Mail oder Telefonnummer eingeben."
-      );
+    if (!supportName.trim() || (!supportEmail.trim() && !supportPhone.trim())) {
+      setSupportError("Bitte Name und E-Mail oder Telefonnummer eingeben.");
+      return;
+    }
+
+    if (!supportConsent) {
+      setSupportError("Bitte bestätigen Sie die Datenschutzerklärung.");
       return;
     }
 
@@ -284,6 +294,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           lastMessages: lastMessagesPayload,
           url: currentUrl,
           ticketTitle,
+          consent: supportConsent,
         }),
       });
 
@@ -305,10 +316,6 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     }
   }
 
-  
-
-
- 
   // voll neue chat mit neue session_id
   function handleNewChat() {
     if (typeof window !== "undefined") {
@@ -327,6 +334,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     setLeadDone(false);
     setLeadName("");
     setLeadEmail("");
+    setLeadPhone("");
+    setLeadConsent(false);
     setLeadError(null);
     setLeadLoading(false);
 
@@ -335,6 +344,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     setSupportName("");
     setSupportEmail("");
     setSupportPhone("");
+    setSupportConsent(false);
     setSupportError(null);
     setSupportLoading(false);
   }
@@ -421,14 +431,44 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
             className={formInputClasses}
             placeholder="Name"
             value={leadName}
-            onChange={(e) => setLeadName(e.target.value)}
+            onChange={(e) => {
+              setLeadName(e.target.value);
+              if (leadError) setLeadError(null);
+            }}
           />
           <input
             className={formInputClasses}
             placeholder="E-Mail"
             value={leadEmail}
-            onChange={(e) => setLeadEmail(e.target.value)}
+            onChange={(e) => {
+              setLeadEmail(e.target.value);
+              if (leadError) setLeadError(null);
+            }}
           />
+          <input
+            className={formInputClasses}
+            placeholder="Telefon (optional)"
+            value={leadPhone}
+            onChange={(e) => {
+              setLeadPhone(e.target.value);
+              if (leadError) setLeadError(null);
+            }}
+          />
+
+          <label className="flex items-center gap-2 text-[11px] leading-snug">
+            <input
+              type="checkbox"
+              checked={leadConsent}
+              onChange={(e) => {
+                setLeadConsent(e.target.checked);
+                if (leadError) setLeadError(null);
+              }}
+            />
+            <span>
+              Ich akzeptiere die Datenschutzerklärung und bin mit der
+              Verarbeitung meiner Daten einverstanden.
+            </span>
+          </label>
 
           {leadError && <div className="text-red-400">{leadError}</div>}
 
@@ -448,20 +488,44 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
             className={formInputClasses}
             placeholder="Name"
             value={supportName}
-            onChange={(e) => setSupportName(e.target.value)}
+            onChange={(e) => {
+              setSupportName(e.target.value);
+              if (supportError) setSupportError(null);
+            }}
           />
           <input
             className={formInputClasses}
             placeholder="E-Mail (optional)"
             value={supportEmail}
-            onChange={(e) => setSupportEmail(e.target.value)}
+            onChange={(e) => {
+              setSupportEmail(e.target.value);
+              if (supportError) setSupportError(null);
+            }}
           />
           <input
             className={formInputClasses}
             placeholder="Telefon (optional)"
             value={supportPhone}
-            onChange={(e) => setSupportPhone(e.target.value)}
+            onChange={(e) => {
+              setSupportPhone(e.target.value);
+              if (supportError) setSupportError(null);
+            }}
           />
+
+          <label className="flex items-center gap-2 text-[11px] leading-snug">
+            <input
+              type="checkbox"
+              checked={supportConsent}
+              onChange={(e) => {
+                setSupportConsent(e.target.checked);
+                if (supportError) setSupportError(null);
+              }}
+            />
+            <span>
+              Ich akzeptiere die Datenschutzerklärung und bin mit der
+              Verarbeitung meiner Daten einverstanden.
+            </span>
+          </label>
 
           {supportError && (
             <div className="text-red-400">{supportError}</div>
