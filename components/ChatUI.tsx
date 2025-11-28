@@ -193,7 +193,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       (!supportEmail.trim() && !supportPhone.trim())
     ) {
       setSupportError(
-        "Bitte Name und E-Mail oder Telefonnummer eingeben."
+        "Bitte E-Mail oder Telefonnummer eingeben."
       );
       return;
     }
