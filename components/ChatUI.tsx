@@ -38,8 +38,8 @@ function initSessionId(): string | null {
 }
 
 export default function ChatUI({ variant = "dark" }: ChatUIProps) {
-  // сессия без useEffect, чтобы не было ошибки setState в эффекте
-  const [sessionId] = useState<string | null>(() => initSessionId());
+  // state forv"Neuer Chat"
+  const [sessionId, setSessionId] = useState<string | null>(() => initSessionId());
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -60,10 +60,11 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [supportDone, setSupportDone] = useState(false);
   const [supportName, setSupportName] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
+  const [supportPhone, setSupportPhone] = useState(""); // НОВОЕ: телефон
   const [supportError, setSupportError] = useState<string | null>(null);
   const [supportLoading, setSupportLoading] = useState(false);
 
-  // загрузка истории
+  // loading history
   useEffect(() => {
     if (!sessionId) return;
 
@@ -186,8 +187,14 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     e.preventDefault();
     if (!sessionId) return;
 
-    if (!supportName.trim() || !supportEmail.trim()) {
-      setSupportError("Bitte Name und E-Mail eingeben.");
+    // email or tel
+    if (
+      !supportName.trim() ||
+      (!supportEmail.trim() && !supportPhone.trim())
+    ) {
+      setSupportError(
+        "Bitte Name und E-Mail oder Telefonnummer eingeben."
+      );
       return;
     }
 
@@ -203,7 +210,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
         body: JSON.stringify({
           sessionIdHash: hash,
           name: supportName.trim(),
-          email: supportEmail.trim(),
+          email: supportEmail.trim() || null,
+          phone: supportPhone.trim() || null,
           message: lastUserMessage,
         }),
       });
@@ -224,6 +232,37 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     } finally {
       setSupportLoading(false);
     }
+  }
+
+ 
+  // voll neue chat mit neue session_id
+  function handleNewChat() {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(SESSION_KEY);
+      window.localStorage.removeItem(SESSION_CREATED_AT_KEY);
+    }
+
+    const newId = initSessionId();
+    setSessionId(newId);
+
+    setMessages([]);
+    setInput("");
+    setLastUserMessage(null);
+
+    setLeadMode(false);
+    setLeadDone(false);
+    setLeadName("");
+    setLeadEmail("");
+    setLeadError(null);
+    setLeadLoading(false);
+
+    setSupportMode(false);
+    setSupportDone(false);
+    setSupportName("");
+    setSupportEmail("");
+    setSupportPhone("");
+    setSupportError(null);
+    setSupportLoading(false);
   }
 
   const isDark = variant === "dark";
@@ -270,7 +309,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           </button>
 
           <button
-            onClick={() => location.reload()}
+            onClick={handleNewChat}
             className="text-xs opacity-70 hover:opacity-100"
           >
             Neuer Chat
@@ -339,12 +378,20 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           />
           <input
             className={formInputClasses}
-            placeholder="E-Mail"
+            placeholder="E-Mail (optional)"
             value={supportEmail}
             onChange={(e) => setSupportEmail(e.target.value)}
           />
+          <input
+            className={formInputClasses}
+            placeholder="Telefon (optional)"
+            value={supportPhone}
+            onChange={(e) => setSupportPhone(e.target.value)}
+          />
 
-          {supportError && <div className="text-red-400">{supportError}</div>}
+          {supportError && (
+            <div className="text-red-400">{supportError}</div>
+          )}
 
           <button
             disabled={supportLoading}
