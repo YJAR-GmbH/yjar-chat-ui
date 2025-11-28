@@ -187,13 +187,13 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     e.preventDefault();
     if (!sessionId) return;
 
-    // email or tel
+    // Name ist Pflicht, außerdem mindestens E-Mail ODER Telefon
     if (
       !supportName.trim() ||
       (!supportEmail.trim() && !supportPhone.trim())
     ) {
       setSupportError(
-        "Bitte E-Mail oder Telefonnummer eingeben."
+        "Bitte Name und E-Mail oder Telefonnummer eingeben."
       );
       return;
     }
@@ -204,6 +204,15 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     try {
       const hash = await hashId(sessionId);
 
+      // Letzte Chat-Nachrichten für das Ticket vorbereiten (z.B. letzte 6 Einträge)
+      const lastMessagesPayload = messages
+        .slice(-6)
+        .map((m) => `${m.role === "user" ? "User" : "Bot"}: ${m.content}`);
+
+      // Aktuelle URL der Seite (optional)
+      const currentUrl =
+        typeof window !== "undefined" ? window.location.href : null;
+
       await fetch("/api/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -213,6 +222,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           email: supportEmail.trim() || null,
           phone: supportPhone.trim() || null,
           message: lastUserMessage,
+          lastMessages: lastMessagesPayload,
+          url: currentUrl,
         }),
       });
 
@@ -233,6 +244,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       setSupportLoading(false);
     }
   }
+
 
  
   // voll neue chat mit neue session_id
