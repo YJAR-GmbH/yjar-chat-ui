@@ -57,6 +57,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [leadError, setLeadError] = useState<string | null>(null);
   const [leadLoading, setLeadLoading] = useState(false);
   const [leadAskConfirm, setLeadAskConfirm] = useState(false); 
+  const [showLeadPrivacy, setShowLeadPrivacy] = useState(false); 
 
   // Support
   const [supportMode, setSupportMode] = useState(false);
@@ -67,6 +68,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [supportConsent, setSupportConsent] = useState(false);
   const [supportError, setSupportError] = useState<string | null>(null);
   const [supportLoading, setSupportLoading] = useState(false);
+  const [showSupportPrivacy, setShowSupportPrivacy] = useState(false); 
 
   // loading history
   useEffect(() => {
@@ -485,123 +487,268 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
 
       {/* LEAD FORM */}
       {leadMode && !leadDone && (
-        <form onSubmit={submitLead} className={formContainerClasses}>
-          <input
-            className={formInputClasses}
-            placeholder="Name"
-            value={leadName}
-            onChange={(e) => {
-              setLeadName(e.target.value);
-              if (leadError) setLeadError(null);
-            }}
-          />
-          <input
-            className={formInputClasses}
-            placeholder="E-Mail"
-            value={leadEmail}
-            onChange={(e) => {
-              setLeadEmail(e.target.value);
-              if (leadError) setLeadError(null);
-            }}
-          />
-          <input
-            className={formInputClasses}
-            placeholder="Telefon (optional)"
-            value={leadPhone}
-            onChange={(e) => {
-              setLeadPhone(e.target.value);
-              if (leadError) setLeadError(null);
-            }}
-          />
-
-          <label className="flex items-center gap-2 text-[11px] leading-snug">
+        <>
+          <form onSubmit={submitLead} className={formContainerClasses}>
             <input
-              type="checkbox"
-              checked={leadConsent}
+              className={formInputClasses}
+              placeholder="Name"
+              value={leadName}
               onChange={(e) => {
-                setLeadConsent(e.target.checked);
+                setLeadName(e.target.value);
                 if (leadError) setLeadError(null);
               }}
             />
-            <span>
-              Ich akzeptiere die Datenschutzerklärung und bin mit der
-              Verarbeitung meiner Daten einverstanden.
-            </span>
-          </label>
+            <input
+              className={formInputClasses}
+              placeholder="E-Mail"
+              value={leadEmail}
+              onChange={(e) => {
+                setLeadEmail(e.target.value);
+                if (leadError) setLeadError(null);
+              }}
+            />
+            <input
+              className={formInputClasses}
+              placeholder="Telefon (optional)"
+              value={leadPhone}
+              onChange={(e) => {
+                setLeadPhone(e.target.value);
+                if (leadError) setLeadError(null);
+              }}
+            />
 
-          {leadError && <div className="text-red-400">{leadError}</div>}
+            <label className="flex items-center gap-2 text-[11px] leading-snug">
+              {/* DSGVO Checkbox (Lead) */}
+              <input
+                type="checkbox"
+                checked={leadConsent}
+                onChange={(e) => {
+                  setLeadConsent(e.target.checked);
+                  if (leadError) setLeadError(null);
+                }}
+              />
+              <span>
+                Ich akzeptiere die{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowLeadPrivacy(true)}
+                  className="underline text-blue-400 hover:text-blue-500"
+                >
+                  Datenschutzhinweise
+                </button>{" "}
+                und bin mit der Verarbeitung meiner Daten einverstanden.
+              </span>
+            </label>
 
-          <button
-            disabled={leadLoading}
-            className="rounded bg-blue-600 text-white px-3 py-1 disabled:opacity-50"
-          >
-            {leadLoading ? "Senden…" : "Absenden"}
-          </button>
-        </form>
+            {leadError && <div className="text-red-400">{leadError}</div>}
+
+            <button
+              disabled={leadLoading}
+              className="rounded bg-blue-600 text-white px-3 py-1 disabled:opacity-50"
+            >
+              {leadLoading ? "Senden…" : "Absenden"}
+            </button>
+          </form>
+
+          {/* Modal für Datenschutz (Lead) */}
+          {showLeadPrivacy && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+              <div
+                className={
+                  "max-w-sm w-full p-4 rounded-lg text-[10px] leading-snug " +
+                  (isDark ? "bg-slate-800 text-slate-50" : "bg-white text-black")
+                }
+              >
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  <p>
+                    Die von mir in diesem Formular angegebenen personenbezogenen Daten
+                    (z. B. Name, E-Mail-Adresse, Telefonnummer sowie Inhalte meiner
+                    Anfrage) werden von der YJAR GmbH erhoben, gespeichert und
+                    verarbeitet, um meine Anfrage zu bearbeiten, mit mir Kontakt
+                    aufzunehmen und mir passende Informationen, Angebote oder
+                    Rückfragen zukommen zu lassen.
+                  </p>
+                  <p>
+                    Eine Weitergabe meiner Daten an Dritte zu Werbe- oder
+                    Vertriebszwecken findet nicht statt. Eine Übermittlung erfolgt
+                    nur, wenn dies zur Erfüllung meiner Anfrage erforderlich ist
+                    (z. B. im Rahmen der technischen Verarbeitung) oder eine
+                    gesetzliche Verpflichtung besteht.
+                  </p>
+                  <p>
+                    Meine Daten werden nur so lange gespeichert, wie es für die
+                    Bearbeitung meiner Anfrage und eine anschließende Kommunikation
+                    erforderlich ist oder gesetzliche Aufbewahrungspflichten
+                    bestehen. Danach werden sie gelöscht oder anonymisiert.
+                  </p>
+                  <p>
+                    Ich kann meine Einwilligung zur Verarbeitung meiner
+                    personenbezogenen Daten jederzeit mit Wirkung für die Zukunft
+                    widerrufen, zum Beispiel per E-Mail oder über die im Impressum
+                    genannten Kontaktdaten. Im Falle eines Widerrufs wird meine
+                    Anfrage nicht weiter bearbeitet und die Daten – soweit keine
+                    gesetzlichen Pflichten entgegenstehen – gelöscht.
+                  </p>
+                  <p>
+                    Weitere Informationen zum Umgang mit personenbezogenen Daten
+                    sowie zu meinen Rechten (Auskunft, Berichtigung, Löschung,
+                    Einschränkung der Verarbeitung, Widerspruch, Datenübertragbarkeit)
+                    finde ich in der vollständigen Datenschutzerklärung auf der
+                    Website der YJAR GmbH.
+                  </p>
+                </div>
+
+                <div className="flex justify-end mt-3">
+                  <button
+                    type="button"
+                    className="px-3 py-1 border rounded text-[11px]"
+                    onClick={() => setShowLeadPrivacy(false)}
+                  >
+                    Schließen
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
+
 
       {/* SUPPORT FORM */}
       {supportMode && !supportDone && (
-        <form onSubmit={submitSupport} className={formContainerClasses}>
-          <p className="text-xs">
-            Bitte füllen Sie Ihre Kontaktdaten aus, damit unser Support-Team
-            sich schnellstmöglich bei Ihnen melden kann.
-          </p>
-          <input
-            className={formInputClasses}
-            placeholder="Name"
-            value={supportName}
-            onChange={(e) => {
-              setSupportName(e.target.value);
-              if (supportError) setSupportError(null);
-            }}
-          />
-          <input
-            className={formInputClasses}
-            placeholder="E-Mail (optional)"
-            value={supportEmail}
-            onChange={(e) => {
-              setSupportEmail(e.target.value);
-              if (supportError) setSupportError(null);
-            }}
-          />
-          <input
-            className={formInputClasses}
-            placeholder="Telefon (optional)"
-            value={supportPhone}
-            onChange={(e) => {
-              setSupportPhone(e.target.value);
-              if (supportError) setSupportError(null);
-            }}
-          />
+        <>
+          <form onSubmit={submitSupport} className={formContainerClasses}>
+            <p className="text-xs">
+              Bitte füllen Sie Ihre Kontaktdaten aus, damit unser Support-Team
+              sich schnellstmöglich bei Ihnen melden kann.
+            </p>
 
-          <label className="flex items-center gap-2 text-[11px] leading-snug">
             <input
-              type="checkbox"
-              checked={supportConsent}
+              className={formInputClasses}
+              placeholder="Name"
+              value={supportName}
               onChange={(e) => {
-                setSupportConsent(e.target.checked);
+                setSupportName(e.target.value);
                 if (supportError) setSupportError(null);
               }}
             />
-            <span>
-              Ich akzeptiere die Datenschutzerklärung und bin mit der
-              Verarbeitung meiner Daten einverstanden.
-            </span>
-          </label>
 
-          {supportError && (
-            <div className="text-red-400">{supportError}</div>
+            <input
+              className={formInputClasses}
+              placeholder="E-Mail (optional)"
+              value={supportEmail}
+              onChange={(e) => {
+                setSupportEmail(e.target.value);
+                if (supportError) setSupportError(null);
+              }}
+            />
+
+            <input
+              className={formInputClasses}
+              placeholder="Telefon (optional)"
+              value={supportPhone}
+              onChange={(e) => {
+                setSupportPhone(e.target.value);
+                if (supportError) setSupportError(null);
+              }}
+            />
+
+            <label className="flex items-center gap-2 text-[11px] leading-snug">
+              {/* DSGVO Checkbox Support */}
+              <input
+                type="checkbox"
+                checked={supportConsent}
+                onChange={(e) => {
+                  setSupportConsent(e.target.checked);
+                  if (supportError) setSupportError(null);
+                }}
+              />
+
+              <span>
+                Ich akzeptiere die{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowSupportPrivacy(true)}
+                  className="underline text-blue-400 hover:text-blue-500"
+                >
+                  Datenschutzhinweise
+                </button>{" "}
+                und bin mit der Verarbeitung meiner Daten einverstanden.
+              </span>
+            </label>
+
+            {supportError && (
+              <div className="text-red-400">{supportError}</div>
+            )}
+
+            <button
+              disabled={supportLoading}
+              className="rounded bg-blue-600 text-white px-3 py-1 disabled:opacity-50"
+            >
+              {supportLoading ? "Senden…" : "Ticket senden"}
+            </button>
+          </form>
+
+          {/* Modal für Datenschutz (Support) */}
+          {showSupportPrivacy && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+              <div
+                className={
+                  "max-w-sm w-full p-4 rounded-lg text-[10px] leading-snug " +
+                  (isDark ? "bg-slate-800 text-slate-50" : "bg-white text-black")
+                }
+              >
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  <p>
+                    Die von mir im Support-Formular angegebenen personenbezogenen
+                    Daten (Name, E-Mail, Telefonnummer sowie Inhalte meiner
+                    Support-Anfrage) werden von der YJAR GmbH erhoben,
+                    gespeichert und verarbeitet, um mein Anliegen zu bearbeiten,
+                    technische Unterstützung zu leisten und mich zu Rückfragen
+                    oder Lösungswegen zu kontaktieren.
+                  </p>
+                  <p>
+                    Eine Weitergabe meiner Daten an Dritte erfolgt nicht, außer
+                    es ist zwingend zur Bearbeitung meiner Support-Anfrage
+                    notwendig (z. B. technische Dienstleister im Rahmen der
+                    Auftragsverarbeitung) oder gesetzlich vorgeschrieben.
+                  </p>
+                  <p>
+                    Die Daten werden nur so lange gespeichert, wie dies für die
+                    Bearbeitung des Support-Falls erforderlich ist oder gesetzliche
+                    Aufbewahrungspflichten bestehen. Danach erfolgt eine Löschung
+                    oder Anonymisierung.
+                  </p>
+                  <p>
+                    Ich kann meine Einwilligung jederzeit mit Wirkung für die
+                    Zukunft widerrufen. Ein Widerruf kann dazu führen, dass der
+                    Support-Fall nicht weiter bearbeitet werden kann. Die
+                    Kontaktdaten für den Widerruf finden sich im Impressum der
+                    YJAR GmbH.
+                  </p>
+                  <p>
+                    Weitere Informationen zu meinen Rechten (Auskunft,
+                    Löschung, Einschränkung, Widerspruch, Datenübertragbarkeit)
+                    befinden sich in der vollständigen Datenschutzerklärung auf
+                    der Website der YJAR GmbH.
+                  </p>
+                </div>
+
+                <div className="flex justify-end mt-3">
+                  <button
+                    type="button"
+                    className="px-3 py-1 border rounded text-[11px]"
+                    onClick={() => setShowSupportPrivacy(false)}
+                  >
+                    Schließen
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
-
-          <button
-            disabled={supportLoading}
-            className="rounded bg-blue-600 text-white px-3 py-1 disabled:opacity-50"
-          >
-            {supportLoading ? "Senden…" : "Ticket senden"}
-          </button>
-        </form>
+        </>
       )}
+
 
       {/* INPUT */}
       <form onSubmit={sendMessage} className="flex gap-2">
