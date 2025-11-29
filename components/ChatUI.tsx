@@ -95,6 +95,34 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     if (!input.trim() || !sessionId) return;
 
     const text = input.trim();
+    const normalized = text.toLowerCase();
+
+    // Letzte Bot-Nachricht holen
+    const lastAssistant =
+      [...messages].reverse().find((m) => m.role === "assistant")?.content || "";
+
+    // Prüfen, ob Bot zuvor nach Kontaktdaten gefragt hat
+    const botAskedForContact =
+      /Ihren Namen oder Ihre E-Mail-Adresse/i.test(lastAssistant) ||
+      /Ihre Kontaktdaten/i.test(lastAssistant) ||
+      /darf ich bitte Ihren Namen/i.test(lastAssistant);
+
+    // Typische "Ja"-Antworten des Nutzers
+    const userSaidYes =
+      [
+        "ja",
+        "ja.",
+        "ja!",
+        "ja bitte",
+        "ja, bitte",
+        "ja gerne",
+        "ja, gerne",
+      ].includes(normalized);
+
+    // Falls Bot nach Kontaktdaten gefragt hat und User "ja" schreibt,
+    // Lead-Bestätigung (Ja/Nein-Block) erzwingen
+    const forceLeadConfirm = botAskedForContact && userSaidYes;
+
     setLastUserMessage(text);
 
     setMessages((p) => [...p, { role: "user", content: text }]);
@@ -114,6 +142,15 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
 
       if (answer) {
         setMessages((p) => [...p, { role: "assistant", content: answer }]);
+      }
+
+      // Wenn User explizit "ja" auf Kontaktdaten-Frage schreibt
+      if (forceLeadConfirm) {
+        setLeadAskConfirm(true);
+        setLeadMode(false);
+        setSupportMode(false);
+        setLeadDone(false);
+        return;
       }
 
       if (intent === "lead") {
@@ -137,6 +174,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       setLoading(false);
     }
   }
+
 
   async function hashId(id: string) {
     const bytes = new TextEncoder().encode(id);
