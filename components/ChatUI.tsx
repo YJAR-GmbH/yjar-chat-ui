@@ -47,6 +47,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
 
   const [lastUserMessage, setLastUserMessage] = useState<string | null>(null);
 
+  
+
   // Lead
   const [leadMode, setLeadMode] = useState(false);
   const [leadDone, setLeadDone] = useState(false);
@@ -69,6 +71,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [supportError, setSupportError] = useState<string | null>(null);
   const [supportLoading, setSupportLoading] = useState(false);
   const [showSupportPrivacy, setShowSupportPrivacy] = useState(false); 
+  const [feedbackSent, setFeedbackSent] = useState(false);
 
   // loading history
   useEffect(() => {
@@ -360,6 +363,40 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     }
   }
 
+  // Feedback (Daumen hoch / runter) an /api/feedback senden
+  async function sendFeedback(vote: "up" | "down") {
+    if (!sessionId || feedbackSent) return;
+
+    try {
+      const hash = await hashId(sessionId);
+
+      const lastAssistant =
+        [...messages].reverse().find((m) => m.role === "assistant")
+          ?.content || null;
+
+      const lastUser =
+        [...messages].reverse().find((m) => m.role === "user")?.content ||
+        lastUserMessage ||
+        null;
+
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionIdHash: hash,
+          vote,
+          userMessage: lastUser,
+          botAnswer: lastAssistant,
+        }),
+      });
+
+      setFeedbackSent(true);
+    } catch (err) {
+      console.error("Feedback error", err);
+    }
+  }
+
+
   function handleLeadConfirmYes() {
     setLeadAskConfirm(false);
     setLeadMode(true);
@@ -495,6 +532,28 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           </div>
         )}
       </div>
+
+            {/* FEEDBACK – Daumen hoch / runter */}
+            {messages.length > 0 && !feedbackSent && (
+        <div className="flex items-center justify-end gap-2 text-xs opacity-80">
+          <span>Feedback:</span>
+          <button
+            type="button"
+            onClick={() => sendFeedback("up")}
+            className="px-2 py-1 border rounded hover:bg-slate-700"
+          >
+            👍
+          </button>
+          <button
+            type="button"
+            onClick={() => sendFeedback("down")}
+            className="px-2 py-1 border rounded hover:bg-slate-700"
+          >
+            👎
+          </button>
+        </div>
+      )}
+
 
             {/* LEAD CONFIRMATION (Ja/Nein) */}
             {leadAskConfirm && !leadDone && (
