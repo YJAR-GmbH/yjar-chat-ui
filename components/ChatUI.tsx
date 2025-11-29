@@ -44,6 +44,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [botTyping, setBotTyping] = useState(false);
+
 
   const [lastUserMessage, setLastUserMessage] = useState<string | null>(null);
 
@@ -133,6 +135,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     setMessages((p) => [...p, { role: "user", content: text }]);
     setInput("");
     setLoading(true);
+    setBotTyping(true);
+
 
     try {
       const res = await fetch("/api/chat", {
@@ -177,6 +181,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       console.error("Chat error", e);
     } finally {
       setLoading(false);
+      setBotTyping(false);
     }
   }
 
