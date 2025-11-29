@@ -540,6 +540,37 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
         )}
       </div>
 
+      <div className={chatBoxClasses}>
+        {messages.map((m, i) => (
+          <div key={i} className={m.role === "user" ? "text-right" : ""}>
+            <span
+              className={
+                m.role === "user"
+                  ? "inline-block bg-blue-600 text-white px-3 py-2 rounded-lg"
+                  : "inline-block bg-slate-700 text-white px-3 py-2 rounded-lg"
+              }
+            >
+              {m.content}
+            </span>
+          </div>
+        ))}
+
+        {botTyping && (
+          <div className="mt-1">
+            <span className="inline-block bg-slate-700 text-white px-3 py-2 rounded-lg text-xs opacity-80">
+              Assistent schreibt …
+            </span>
+          </div>
+        )}
+
+        {messages.length === 0 && (
+          <div className="text-center opacity-60">
+            Schreib eine erste Nachricht, um zu beginnen.
+          </div>
+        )}
+      </div>
+
+
             {/* FEEDBACK – Daumen hoch / runter */}
             {messages.length > 0 && !feedbackSent && (
         <div className="flex items-center justify-end gap-2 text-xs opacity-80">
@@ -547,14 +578,14 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
           <button
             type="button"
             onClick={() => sendFeedback("up")}
-            className="px-2 py-1 border rounded hover:bg-slate-700"
+            className="px-2 py-1 hover:bg-slate-700"
           >
             👍
           </button>
           <button
             type="button"
             onClick={() => sendFeedback("down")}
-            className="px-2 py-1 border rounded hover:bg-slate-700"
+            className="px-2 py-1 hover:bg-slate-700"
           >
             👎
           </button>
