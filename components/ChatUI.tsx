@@ -100,16 +100,18 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     const text = input.trim();
     const normalized = text.toLowerCase();
 
-    // Letzte Bot-Nachricht holen
-    const lastAssistant =
-      [...messages].reverse().find((m) => m.role === "assistant")?.content || "";
-
-    // Prüfen, ob Bot zuvor nach Kontaktdaten gefragt hat
-    const botAskedForContact =
-      /Ihren Namen oder Ihre E-Mail-Adresse/i.test(lastAssistant) ||
-      /Ihre Kontaktdaten/i.test(lastAssistant) ||
-      /darf ich bitte Ihren Namen/i.test(lastAssistant);
-
+        // Letzte Bot-Nachricht holen
+        const lastAssistant =
+        [...messages].reverse().find((m) => m.role === "assistant")?.content || "";
+  
+      // Prüfen, ob Bot zuvor nach Kontaktdaten gefragt hat
+      const botAskedForContact =
+        /Kontaktdaten/i.test(lastAssistant) ||
+        (
+          /E-?Mail/i.test(lastAssistant) &&
+          /(Name|Namen|heißen|Kontaktaufnahme)/i.test(lastAssistant)
+        );
+  
     // Typische "Ja"-Antworten des Nutzers
     const userSaidYes =
       [
