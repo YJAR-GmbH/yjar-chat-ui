@@ -52,18 +52,19 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
   const [leadDone, setLeadDone] = useState(false);
   const [leadName, setLeadName] = useState("");
   const [leadEmail, setLeadEmail] = useState("");
-  const [leadPhone, setLeadPhone] = useState("");           // телефон для лида
-  const [leadConsent, setLeadConsent] = useState(false);    // согласие DSGVO (lead)
+  const [leadPhone, setLeadPhone] = useState("");           
+  const [leadConsent, setLeadConsent] = useState(false);    
   const [leadError, setLeadError] = useState<string | null>(null);
   const [leadLoading, setLeadLoading] = useState(false);
+  const [leadAskConfirm, setLeadAskConfirm] = useState(false); 
 
   // Support
   const [supportMode, setSupportMode] = useState(false);
   const [supportDone, setSupportDone] = useState(false);
   const [supportName, setSupportName] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
-  const [supportPhone, setSupportPhone] = useState("");     // телефон support
-  const [supportConsent, setSupportConsent] = useState(false); // согласие DSGVO (support)
+  const [supportPhone, setSupportPhone] = useState("");     
+  const [supportConsent, setSupportConsent] = useState(false);
   const [supportError, setSupportError] = useState<string | null>(null);
   const [supportLoading, setSupportLoading] = useState(false);
 
@@ -114,16 +115,19 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       }
 
       if (intent === "lead") {
-        setLeadMode(true);
+        setLeadAskConfirm(true);
+        setLeadMode(false);
         setSupportMode(false);
         setLeadDone(false);
       } else if (intent === "support") {
         setSupportMode(true);
         setLeadMode(false);
+        setLeadAskConfirm(false);
         setSupportDone(false);
       } else {
         setLeadMode(false);
         setSupportMode(false);
+        setLeadAskConfirm(false);
       }
     } catch (e) {
       console.error("Chat error", e);
@@ -316,6 +320,33 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     }
   }
 
+  function handleLeadConfirmYes() {
+    setLeadAskConfirm(false);
+    setLeadMode(true);
+    setMessages((p) => [
+      ...p,
+      {
+        role: "assistant",
+        content:
+          "Gerne, bitte füllen Sie kurz das Formular aus, damit wir Sie kontaktieren können.",
+      },
+    ]);
+  }
+
+  function handleLeadConfirmNo() {
+    setLeadAskConfirm(false);
+    setLeadMode(false);
+    setMessages((p) => [
+      ...p,
+      {
+        role: "assistant",
+        content:
+          "Alles klar, ich helfe Ihnen gerne hier im Chat weiter. Stellen Sie mir einfach Ihre Fragen.",
+      },
+    ]);
+  }
+
+
   // voll neue chat mit neue session_id
   function handleNewChat() {
     if (typeof window !== "undefined") {
@@ -338,6 +369,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     setLeadConsent(false);
     setLeadError(null);
     setLeadLoading(false);
+    setLeadAskConfirm(false);
 
     setSupportMode(false);
     setSupportDone(false);
@@ -424,6 +456,33 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
         )}
       </div>
 
+            {/* LEAD CONFIRMATION (Ja/Nein) */}
+            {leadAskConfirm && !leadDone && (
+        <div className={formContainerClasses}>
+          <p className="text-xs">
+            Möchten Sie mit einem unserer Spezialisten sprechen? Wir können Ihre
+            Kontaktdaten aufnehmen und melden uns persönlich bei Ihnen.
+          </p>
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={handleLeadConfirmYes}
+              className="rounded bg-blue-600 text-white px-3 py-1 text-xs"
+            >
+              Ja, ich möchte Kontakt
+            </button>
+            <button
+              type="button"
+              onClick={handleLeadConfirmNo}
+              className="rounded border px-3 py-1 text-xs"
+            >
+              Nein, jetzt nicht
+            </button>
+          </div>
+        </div>
+      )}
+
+
       {/* LEAD FORM */}
       {leadMode && !leadDone && (
         <form onSubmit={submitLead} className={formContainerClasses}>
@@ -484,6 +543,10 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       {/* SUPPORT FORM */}
       {supportMode && !supportDone && (
         <form onSubmit={submitSupport} className={formContainerClasses}>
+          <p className="text-xs">
+            Bitte füllen Sie Ihre Kontaktdaten aus, damit unser Support-Team
+            sich schnellstmöglich bei Ihnen melden kann.
+          </p>
           <input
             className={formInputClasses}
             placeholder="Name"
