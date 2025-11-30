@@ -9,7 +9,17 @@
   
       var root = doc.createElement("div");
       root.id = "yjar-chat-widget-root";
+  
+      // Root hat keinen Einfluss auf das Layout der Seite
+      root.style.position = "fixed";
+      root.style.top = "0";
+      root.style.left = "0";
+      root.style.width = "0";
+      root.style.height = "0";
+      root.style.zIndex = "999998";
+  
       doc.body.appendChild(root);
+  
   
          // Chat-Button (runde Blase unten rechts)
     var bubble = doc.createElement("button");
@@ -53,6 +63,7 @@
     label.style.fontWeight = "500";
     label.style.boxShadow = "0 4px 12px rgba(0,0,0,0.12)";
     label.style.zIndex = "999999";
+    label.style.whiteSpace = "nowrap";
 
   
       var panel = doc.createElement("div");
@@ -71,6 +82,7 @@
       panel.style.background = "#ffffff";
       panel.style.zIndex = "999999";
       panel.style.display = "none";
+      panel.style.background = "none";
   
       var iframe = doc.createElement("iframe");
       iframe.id = "yjar-chat-widget-iframe";
@@ -85,13 +97,21 @@
       panel.appendChild(iframe);
   
       root.appendChild(bubble);
+      root.appendChild(label);
       root.appendChild(panel);
+
   
       var isOpen = false;
       bubble.addEventListener("click", function () {
         isOpen = !isOpen;
         panel.style.display = isOpen ? "block" : "none";
+  
+        // Label nur anzeigen, wenn der Chat geschlossen ist
+        if (label) {
+          label.style.display = isOpen ? "none" : "block";
+        }
       });
+  
     }
   
     if (document.readyState === "loading") {
