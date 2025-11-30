@@ -229,7 +229,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
         (lastUser ? lastUser.slice(0, 80) : "Neue Anfrage über Website");
 
      // Lead zusätzlich als Ticket an n8n/Asana senden
-     await fetch("/api/support", {
+     await fetch("/api/lead", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
