@@ -214,20 +214,8 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
     try {
       const hash = await hashId(sessionId);
 
-      // Lead zuerst in Supabase speichern
-      await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionIdHash: hash,
-          name: leadName.trim(),
-          email: leadEmail.trim(),
-          phone: leadPhone.trim() || null,
-          message: lastUserMessage,
-          source: "website-chat",
-          consent: leadConsent,
-        }),
-      });
+           
+    
 
       // Letzte User-Nachricht für den Titel finden
       const lastUser =
@@ -240,25 +228,26 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
         "Lead: " +
         (lastUser ? lastUser.slice(0, 80) : "Neue Anfrage über Website");
 
-      // Lead zusätzlich als Ticket an n8n/Asana senden
-      await fetch("/api/support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionIdHash: hash,
-          name: leadName.trim(),
-          email: leadEmail.trim(),
-          phone: leadPhone.trim() || null,
-          message: lastUserMessage,
-          lastMessages: messages.map((m) => {
-            const prefix = m.role === "user" ? "User" : "Bot";
-            return `${prefix}: ${m.content}`;
-          }),
-          ticketTitle,
-          url: typeof window !== "undefined" ? window.location.href : null,
-          consent: leadConsent,
+     // Lead zusätzlich als Ticket an n8n/Asana senden
+     await fetch("/api/support", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionIdHash: hash,
+        name: leadName.trim(),
+        email: leadEmail.trim(),
+        phone: leadPhone.trim() || null,
+        message: lastUserMessage,
+        lastMessages: messages.map((m) => {
+          const prefix = m.role === "user" ? "User" : "Bot";
+          return `${prefix}: ${m.content}`;
         }),
-      });
+        ticketTitle,
+        url: typeof window !== "undefined" ? window.location.href : null,
+        consent: leadConsent,
+        type: "lead", 
+      }),
+    });
 
       setLeadDone(true);
       setLeadMode(false);
@@ -336,21 +325,23 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
       const currentUrl =
         typeof window !== "undefined" ? window.location.href : null;
 
-      await fetch("/api/support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionIdHash: hash,
-          name: supportName.trim(),
-          email: supportEmail.trim() || null,
-          phone: supportPhone.trim() || null,
-          message: lastUserMessage,
-          lastMessages: lastMessagesPayload,
-          url: currentUrl,
-          ticketTitle,
-          consent: supportConsent,
-        }),
-      });
+        await fetch("/api/support", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionIdHash: hash,
+            name: supportName.trim(),
+            email: supportEmail.trim() || null,
+            phone: supportPhone.trim() || null,
+            message: lastUserMessage,
+            lastMessages: lastMessagesPayload,
+            url: currentUrl,
+            ticketTitle,
+            consent: supportConsent,
+            type: "support", 
+          }),
+        });
+  
 
       setSupportDone(true);
       setSupportMode(false);
