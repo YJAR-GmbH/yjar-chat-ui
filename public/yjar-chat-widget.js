@@ -74,7 +74,7 @@
       panel.style.right = "20px";
       panel.style.width = "380px";
       panel.style.maxWidth = "100vw";
-      panel.style.height = "620px";
+      panel.style.height = "455px";
       panel.style.maxHeight = "80vh";
       panel.style.boxShadow = "0 10px 40px rgba(15,23,42,0.35)";
       panel.style.borderRadius = "16px";
