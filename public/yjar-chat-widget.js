@@ -11,31 +11,49 @@
       root.id = "yjar-chat-widget-root";
       doc.body.appendChild(root);
   
-      var bubble = doc.createElement("button");
-      bubble.id = "yjar-chat-widget-button";
-      bubble.type = "button";
-  
-      // Verhindert doppelte Initialisierung
-      bubble.style.position = "fixed";
-      bubble.style.bottom = "20px";
-      bubble.style.right = "20px";
-      bubble.style.width = "56px";
-      bubble.style.height = "56px";
-      bubble.style.borderRadius = "9999px";
-      bubble.style.border = "none";
-      bubble.style.cursor = "pointer";
-      bubble.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-      bubble.style.background = "#1c3d5a";
-      bubble.style.color = "#ffffff";
-      bubble.style.zIndex = "999999";
-      bubble.style.display = "flex";
-      bubble.style.alignItems = "center";
-      bubble.style.justifyContent = "center";
-      bubble.style.fontSize = "24px";
-      bubble.style.padding = "0";
-  
-      bubble.setAttribute("aria-label", "YJAR Chat");
-      bubble.innerHTML = "💬";
+         // Chat-Button (runde Blase unten rechts)
+    var bubble = doc.createElement("button");
+    bubble.id = "yjar-chat-widget-button";
+    bubble.type = "button";
+
+    bubble.style.position = "fixed";
+    bubble.style.bottom = "20px";
+    bubble.style.right = "20px";
+    bubble.style.width = "56px";
+    bubble.style.height = "56px";
+    bubble.style.borderRadius = "9999px";
+    bubble.style.border = "none";
+    bubble.style.cursor = "pointer";
+    bubble.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+    bubble.style.background = "#1c3d5a";
+    bubble.style.color = "#ffffff";
+    bubble.style.zIndex = "999999";
+    bubble.style.display = "flex";
+    bubble.style.alignItems = "center";
+    bubble.style.justifyContent = "center";
+    bubble.style.fontSize = "24px";
+    bubble.style.padding = "0";
+
+    bubble.setAttribute("aria-label", "YJAR Chat");
+    bubble.innerHTML = "💬";
+
+    // Text-Badge neben dem Button: "Chatten Sie mit uns"
+    var label = doc.createElement("div");
+    label.id = "yjar-chat-widget-label";
+
+    label.textContent = "Chatten Sie mit uns";
+    label.style.position = "fixed";
+    label.style.bottom = "28px";
+    label.style.right = "90px";
+    label.style.padding = "8px 14px";
+    label.style.borderRadius = "9999px";
+    label.style.background = "#ffffff";
+    label.style.color = "#1c3d5a";
+    label.style.fontSize = "14px";
+    label.style.fontWeight = "500";
+    label.style.boxShadow = "0 4px 12px rgba(0,0,0,0.12)";
+    label.style.zIndex = "999999";
+
   
       var panel = doc.createElement("div");
       panel.id = "yjar-chat-widget-panel";
