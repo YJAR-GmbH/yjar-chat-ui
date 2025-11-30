@@ -532,29 +532,7 @@ export default function ChatUI({ variant = "dark" }: ChatUIProps) {
             </span>
           </div>
         ))}
-
-        {messages.length === 0 && (
-          <div className="text-center opacity-60">
-            Schreib eine erste Nachricht, um zu beginnen.
-          </div>
-        )}
-      </div>
-
-      <div className={chatBoxClasses}>
-        {messages.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "text-right" : ""}>
-            <span
-              className={
-                m.role === "user"
-                  ? "inline-block bg-blue-600 text-white px-3 py-2 rounded-lg"
-                  : "inline-block bg-slate-700 text-white px-3 py-2 rounded-lg"
-              }
-            >
-              {m.content}
-            </span>
-          </div>
-        ))}
-
+        
         {botTyping && (
           <div className="mt-1">
             <span className="inline-block bg-slate-700 text-white px-3 py-2 rounded-lg text-xs opacity-80">
