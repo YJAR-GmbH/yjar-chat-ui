@@ -74,15 +74,15 @@
       panel.style.right = "20px";
       panel.style.width = "380px";
       panel.style.maxWidth = "100vw";
-      panel.style.height = "520px";
+      panel.style.height = "620px";
       panel.style.maxHeight = "80vh";
       panel.style.boxShadow = "0 10px 40px rgba(15,23,42,0.35)";
       panel.style.borderRadius = "16px";
       panel.style.overflow = "hidden";
-      panel.style.background = "#ffffff";
+      panel.style.background = "#020617"; // dunkler Hintergrund, kein schwarzer Rand
       panel.style.zIndex = "999999";
       panel.style.display = "none";
-      panel.style.background = "none";
+  
   
       var iframe = doc.createElement("iframe");
       iframe.id = "yjar-chat-widget-iframe";
