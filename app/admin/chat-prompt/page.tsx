@@ -48,11 +48,12 @@ export default function ChatPromptAdminPage() {
     }
   }, []);
 
-  // Load saved token from localStorage
+  // gespeicherten Token laden
   useEffect(() => {
     const t = localStorage.getItem("admin_prompt_token");
     if (t) {
       setStoredToken(t);
+      setToken(t);
       fetchPrompt(t);
     }
   }, [fetchPrompt]);
@@ -60,7 +61,18 @@ export default function ChatPromptAdminPage() {
   function handleTokenSave() {
     localStorage.setItem("admin_prompt_token", token);
     setStoredToken(token);
+    setMessage(null);
+    setError(null);
     fetchPrompt(token);
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("admin_prompt_token");
+    setToken("");
+    setStoredToken("");
+    setPrompt("");
+    setError(null);
+    setMessage(null);
   }
 
   async function savePrompt() {
@@ -115,11 +127,21 @@ export default function ChatPromptAdminPage() {
               onChange={(e) => setToken(e.target.value)}
             />
             <button
+              type="button"
               onClick={handleTokenSave}
               className="px-4 py-2 rounded-md bg-blue-600 text-sm font-medium"
             >
               Login
             </button>
+            {storedToken && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-4 py-2 rounded-md border border-red-500 text-red-300 text-sm font-medium"
+              >
+                Logout
+              </button>
+            )}
           </div>
 
           <p className="text-xs text-slate-400">
@@ -146,6 +168,7 @@ export default function ChatPromptAdminPage() {
             />
 
             <button
+              type="button"
               onClick={savePrompt}
               disabled={saving}
               className="px-4 py-2 rounded-md bg-emerald-600 disabled:opacity-50"
