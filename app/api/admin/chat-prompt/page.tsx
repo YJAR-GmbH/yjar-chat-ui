@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function ChatPromptAdminPage() {
   const [token, setToken] = useState("");
@@ -11,18 +13,7 @@ export default function ChatPromptAdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  // Load saved token from localStorage
-  useEffect(() => {
-    const t = localStorage.getItem("admin_prompt_token");
-    if (t) {
-      setStoredToken(t);
-      fetchPrompt(t);
-    }
-  }, []);
-
-  async function fetchPrompt(tokenValue: string) {
+  const fetchPrompt = useCallback(async (tokenValue: string) => {
     if (!API_BASE) {
       setError("NEXT_PUBLIC_API_BASE_URL ist nicht gesetzt");
       return;
@@ -46,17 +37,25 @@ export default function ChatPromptAdminPage() {
       const data = await res.json();
       setPrompt(data.prompt || "");
     } catch (e: unknown) {
-        if (e instanceof Error) {
-          setError(e.message);
-        } else {
-          setError("Unbekannter Fehler beim Laden des Prompts");
-        }
-        setPrompt("");
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("Unbekannter Fehler beim Laden des Prompts");
       }
-       finally {
+      setPrompt("");
+    } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  // Load saved token from localStorage
+  useEffect(() => {
+    const t = localStorage.getItem("admin_prompt_token");
+    if (t) {
+      setStoredToken(t);
+      fetchPrompt(t);
+    }
+  }, [fetchPrompt]);
 
   function handleTokenSave() {
     localStorage.setItem("admin_prompt_token", token);
@@ -90,13 +89,12 @@ export default function ChatPromptAdminPage() {
 
       setMessage("Gespeichert.");
     } catch (e: unknown) {
-        if (e instanceof Error) {
-          setError(e.message);
-        } else {
-          setError("Unbekannter Fehler beim Speichern");
-        }
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("Unbekannter Fehler beim Speichern");
       }
-       finally {
+    } finally {
       setSaving(false);
     }
   }
@@ -104,7 +102,6 @@ export default function ChatPromptAdminPage() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 p-6">
       <div className="max-w-4xl mx-auto space-y-8">
-
         <h1 className="text-2xl font-semibold">YJAR Chat – Prompt Editor</h1>
 
         {/* TOKEN LOGIN */}
@@ -126,7 +123,7 @@ export default function ChatPromptAdminPage() {
           </div>
 
           <p className="text-xs text-slate-400">
-            Der Token wird lokal gespeichert.
+            Der Token wird nur lokal im Browser gespeichert.
           </p>
         </div>
 
@@ -156,7 +153,9 @@ export default function ChatPromptAdminPage() {
               {saving ? "Speichern…" : "Speichern"}
             </button>
 
-            {message && <p className="text-emerald-400 text-sm">{message}</p>}
+            {message && (
+              <p className="text-emerald-400 text-sm">{message}</p>
+            )}
           </div>
         )}
       </div>
